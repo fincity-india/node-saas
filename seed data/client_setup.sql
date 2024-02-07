@@ -1460,3 +1460,14 @@ INSERT INTO `security`.`security_app_access` (client_id, app_id, EDIT_ACCESS) VA
 
 
 -- Testing 
+
+
+INSERT IGNORE INTO `security`.`security_permission` (`CLIENT_ID`, `NAME`, `DESCRIPTION`) VALUES (@v_user_sysadmin, 'Limitations CREATE', 'Limitations create');
+
+INSERT IGNORE INTO `security`.`security_permission` (`CLIENT_ID`, `NAME`, `DESCRIPTION`) VALUES (@v_user_sysadmin, 'Limitations UPDATE', 'Limitations update');
+
+INSERT IGNORE INTO `security`.`security_permission` (`CLIENT_ID`, `NAME`, `DESCRIPTION`) VALUES (@v_user_sysadmin, 'Limitations DELETE', 'Limitations delete');
+
+INSERT IGNORE INTO `security`.`security_role` (`CLIENT_ID`, `NAME`, `DESCRIPTION`) VALUES (@v_user_sysadmin, 'Limitations Manager', 'Role to hold Limitations operations permissions');
+
+INSERT IGNORE INTO `security`.`security_package` (`CLIENT_ID`, `CODE`, `NAME`, `DESCRIPTION`, `BASE`) VALUES (@v_user_sysadmin, 'LIMIT', 'Limitations Management', 'Limitations management roles and permissions will be part of this package', FALSE);
