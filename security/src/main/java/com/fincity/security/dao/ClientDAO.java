@@ -513,7 +513,7 @@ public class ClientDAO extends AbstractUpdatableDAO<SecurityClientRecord, ULong,
 
 	}
 
-	public Mono<List<Package>> getPackagesAvailableForClient(ULong clientId) {
+	public Mono<List<Package>> getAssignedPackagesForClient(ULong clientId) {
 
 		return Flux.from(
 
@@ -544,6 +544,22 @@ public class ClientDAO extends AbstractUpdatableDAO<SecurityClientRecord, ULong,
 				.where(SECURITY_CLIENT.TYPE_CODE.eq("SYS"))
 				.limit(1))
 				.map(Record1::value1);
+	}
+
+	public Mono<List<Package>> getAssignablePackagesForClient(ULong clientId) {
+		return Flux.from(
+
+				this.dslContext.select(SECURITY_PACKAGE.fields())
+						.from(SECURITY_PACKAGE)
+
+						.leftJoin(SECURITY_CLIENT_PACKAGE)
+						.on(SECURITY_CLIENT_PACKAGE.PACKAGE_ID.eq(SECURITY_PACKAGE.ID))
+						.and(SECURITY_CLIENT_PACKAGE.CLIENT_ID.eq(clientId))
+
+						.where(SECURITY_CLIENT_PACKAGE.CLIENT_ID.eq(clientId))
+						.or(SECURITY_PACKAGE.CLIENT_ID.eq(clientId)))
+				.map(e -> e.into(Package.class))
+				.collectList();
 	}
 
 }

@@ -743,7 +743,7 @@ public class ClientService
 	}
 
 	@PreAuthorize("hasAuthority('Authorities.Client_READ') and hasAuthority('Authorities.Package_READ')")
-	public Mono<List<Package>> fetchPackages(ULong clientId) {
+	public Mono<List<Package>> fetchAssignedPackages(ULong clientId) {
 
 		return flatMapMono(
 
@@ -755,12 +755,27 @@ public class ClientService
 						: this.isBeingManagedBy(ULongUtil.valueOf(ca.getLoggedInFromClientId()), clientId)
 								.flatMap(BooleanUtil::safeValueOfWithEmpty),
 
-				(ca, sysOrManaged) -> this.dao.getPackagesAvailableForClient(clientId)
+				(ca, sysOrManaged) -> this.dao.getAssignedPackagesForClient(clientId)
 
-		).contextWrite(Context.of(LogUtil.METHOD_NAME, "ClientService.fetchPackages"))
+		).contextWrite(Context.of(LogUtil.METHOD_NAME, "ClientService.fetchAssignedPackages"))
 				.switchIfEmpty(securityMessageResourceService.throwMessage(
 						msg -> new GenericException(HttpStatus.FORBIDDEN, msg),
 						SecurityMessageResourceService.FETCH_PACKAGE_ERROR, clientId));
+
+	}
+
+	public Mono<List<Package>> fetchAssignablePackages() {
+
+		return flatMapMono(
+
+				SecurityContextUtil::getUsersContextAuthentication,
+
+				ca -> this.dao.getAssignablePackagesForClient(ULong.valueOf(ca.getUser().getClientId()))
+
+		).contextWrite(Context.of(LogUtil.METHOD_NAME, "ClientService.fetchAssignablePackages"))
+				.switchIfEmpty(securityMessageResourceService.throwMessage(
+						msg -> new GenericException(HttpStatus.FORBIDDEN, msg),
+						SecurityMessageResourceService.FETCH_PACKAGE_ERROR));
 
 	}
 
@@ -873,4 +888,23 @@ public class ClientService
 
 		).contextWrite(Context.of(LogUtil.METHOD_NAME, "ClientService.addClientPackagesAfterRegistration"));
 	}
+
+	public Mono<Boolean> isClientActive(ULong clientId) {
+
+		return FlatMapUtil.flatMapMono(
+
+				() -> this.getClientInfoById(clientId),
+
+				c -> c.getStatusCode() != SecurityClientStatusCode.ACTIVE ? Mono.empty() : Mono.just(true),
+
+				(c, active) -> {
+
+					if ("SYS".equals(c.getTypeCode()))
+						return Mono.just(true);
+
+					return this.getManagedClientOfClientById(clientId).map(Client::getId).flatMap(this::isClientActive)
+							.defaultIfEmpty(true);
+				}).defaultIfEmpty(false);
+	}
+
 }
